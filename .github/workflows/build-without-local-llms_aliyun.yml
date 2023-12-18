@@ -1,0 +1,47 @@
+# https://docs.github.com/en/actions/publishing-packages/publishing-docker-images#publishing-images-to-github-packages
+name: build-without-local-llms
+
+on:
+  push:
+    branches:
+      - 'master'
+
+env:
+  REGISTRY: ${{ secrets.REGISTRY }}
+  WORKSPACE: ${{ secrets.WORKSPACE }}
+  IMAGE_NAME: chatgpt-academic_nolocal
+  
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    environment :
+       name : 'REGISTRY'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.ALIUSER }}
+          password: ${{ secrets.ALIPASS }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.WORKSPACE}}/${{ env.IMAGE_NAME }}
+          flavor: |
+            latest=true
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          file: docs/GithubAction+NoLocal
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
